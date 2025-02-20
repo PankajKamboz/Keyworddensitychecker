@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Keyword Density Checker</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #eef2f3; }
+        .container { max-width: 90%; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+        textarea, button { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { background: #28a745; color: white; font-weight: bold; cursor: pointer; border: none; border-radius: 5px; padding: 12px; }
+        button:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        td { background-color: #f8f9fa; }
+        h2 { text-align: center; color: #343a40; }
+        h3 { color: #007bff; margin-top: 20px; }
+        .density-info { font-size: 14px; font-weight: bold; color: #dc3545; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Smart Keyword Density Checker</h2>
+        <textarea id="content" rows="6" placeholder="Enter your content here..."></textarea>
+        <button onclick="calculateDensity()">Detect Keywords & Calculate Density</button>
+        <div class="density-info">Recommended keyword density is 1-3% of the total 1000-word content.</div>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const stopwords = new Set([
+            "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "for", "if", "in", "is", "it", "of", "on", "or", "so", "the", "to", "was", "were", "will", "with", "that", "this", "these", "those", "you", "your", "i", "he", "she", "we", "they"
+        ]);
+
+        function getPhraseFrequency(words, phraseLength) {
+            let phraseCounts = {};
+            for (let i = 0; i <= words.length - phraseLength; i++) {
+                let phrase = words.slice(i, i + phraseLength).join(" ");
+                if (phrase.split(" ").some(word => stopwords.has(word))) continue;
+                phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+            }
+            return Object.entries(phraseCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        }
+
+        function calculateDensity() {
+            let content = document.getElementById("content").value.trim().toLowerCase();
+            if (!content) {
+                document.getElementById("output").innerHTML = "<p>Please enter some content.</p>";
+                return;
+            }
+            
+            let words = content.match(/\b\w+\b/g) || [];
+            let filteredWords = words.filter(word => !stopwords.has(word));
+            let totalWords = filteredWords.length;
+
+            let oneWordKeywords = {};
+            filteredWords.forEach(word => {
+                oneWordKeywords[word] = (oneWordKeywords[word] || 0) + 1;
+            });
+
+            let topSingleWords = Object.entries(oneWordKeywords)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            let twoWordPhrases = getPhraseFrequency(filteredWords, 2);
+            let threeWordPhrases = getPhraseFrequency(filteredWords, 3);
+            let fourToFiveWordPhrases = getPhraseFrequency(filteredWords, 4).concat(getPhraseFrequency(filteredWords, 5)).slice(0, 5);
+
+            let generateTable = (title, phrases) => {
+                let html = `<h3>${title}</h3><table><tr><th>#</th><th>Keyword</th><th>Frequency</th><th>Density</th></tr>`;
+                phrases.forEach(([phrase, count], index) => {
+                    let density = ((count / totalWords) * 100).toFixed(2) + "%";
+                    html += `<tr><td>${index + 1}</td><td>${phrase}</td><td>${count}</td><td>${density}</td></tr>`;
+                });
+                return html + "</table>";
+            };
+
+            document.getElementById("output").innerHTML = 
+                generateTable("Single Keywords", topSingleWords) +
+                generateTable("Two-Word Phrases", twoWordPhrases) +
+                generateTable("Three-Word Phrases", threeWordPhrases) +
+                generateTable("4-5 Word Phrases", fourToFiveWordPhrases);
+        }
+    </script>
+</body>
+</html>
